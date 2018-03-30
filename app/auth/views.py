@@ -2,7 +2,8 @@ from flask import render_template, redirect, request, url_for, flash
 from flask_login import login_user, login_required, logout_user
 from . import auth
 from ..models import User
-from .forms import LoginForm
+from .forms import LoginForm, RegistrationForm
+from app import db
 
 
 # 登录路由
@@ -17,7 +18,7 @@ def login():
             login_user(user, form.remember_me.data)
             # 跳转到之前访问页面或者首页
             return redirect(request.args.get('next') or url_for('main.index'))
-        flash('Invalid username or password.')
+        flash('用户名或密码错误')
     # get方法不满足if条件，渲染登录模板
     return render_template('auth/login.html', form=form)
 
@@ -29,3 +30,15 @@ def logout():
     logout_user()
     flash('您已退出登录')
     return redirect(url_for('main.index'))
+
+
+# 注册路由
+@auth.route('/register', methods=['POST', 'GET'])
+def register():
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        user = User(email=form.email.data, username=form.username.data, password=form.password.data)
+        db.session.add(user)
+        flash('注册成功')
+        return redirect(url_for('auth.login'))
+    return render_template('auth/register.html', form=form)
