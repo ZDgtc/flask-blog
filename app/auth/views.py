@@ -1,9 +1,21 @@
-from flask import render_template, redirect, request, url_for, flash
-from flask_login import login_user, login_required, logout_user
+from flask import render_template, redirect, request, url_for, flash, ab
+from flask_login import login_user, login_required, logout_user, current_user
 from . import auth
 from ..models import User
 from .forms import LoginForm, RegistrationForm
 from app import db
+
+
+# 每次请求前运行，更新已登录用户的访问时间
+@auth.before_app_request
+def before_request():
+    if current_user.is_authenticated:
+        current_user.ping()
+        if not current_user.confirmed \
+                and request.endpoint \
+                and request.blueprint != 'auth' \
+                and request.endpoint != 'static':
+            return redirect(url_for('auth.unconfirmed'))
 
 
 # 登录路由
@@ -17,7 +29,10 @@ def login():
             # 把用户标记为已登录，并根据用户选择是否设置cookie
             login_user(user, form.remember_me.data)
             # 跳转到之前访问页面或者首页
-            return redirect(request.args.get('next') or url_for('main.index'))
+            next = request.args.get('next')
+            if next is None or not next.startwith('/'):
+                next = url_for('main.index')
+            return redirect(next)
         flash('用户名或密码错误')
     # get方法不满足if条件，渲染登录模板
     return render_template('auth/login.html', form=form)
@@ -42,3 +57,9 @@ def register():
         flash('注册成功')
         return redirect(url_for('auth.login'))
     return render_template('auth/register.html', form=form)
+
+@auth.route('/user/<username>')
+def user(username):
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        abort(404)
