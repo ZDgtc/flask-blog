@@ -4,6 +4,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin, AnonymousUserMixin
 from flask import current_app
 from datetime import datetime
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+
 
 
 class Role(db.Model):
@@ -14,6 +16,7 @@ class Role(db.Model):
     permissions = db.Column(db.Integer)
     users = db.relationship('User', backref='role', lazy='dynamic')
 
+    # User:7, Moderator:15, Admin:255
     @staticmethod
     def insert_roles():
         roles = {
@@ -61,6 +64,7 @@ class User(UserMixin, db.Model):
     about_me = db.Column(db.Text())
     member_since = db.Column(db.DateTime(), default=datetime.utcnow)
     last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
+    confirmed = db.Column(db.Boolean, default=False)
 
     # 设置角色
     def __init__(self, **kwargs):
@@ -97,6 +101,24 @@ class User(UserMixin, db.Model):
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
+
+    # 生成令牌，默认有效期一小时
+    def generate_confirmation_token(self, expiration=3600):
+        s = Serializer(current_app.config['SECRET_KEY'], expiration)
+        return s.dumps({'confirm': self.id})
+
+    # 验证令牌，并检查用户id是否匹配
+    def confirm(self, token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except:
+            return False
+        if data.get('confirm') != self.id:
+            return False
+        self.confirmed = True
+        db.session.add(self)
+        return True
 
     # 刷新用户的最后访问时间
     def ping(self):

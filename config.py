@@ -4,10 +4,16 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard to guess string'
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.qq.com')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', '465'))
+    MAIL_USE_TLS = False
+    MAIL_USE_SSL = True
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '605079324@qq.com')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     SQLALCHEMY_COMMIT_ON_TEARDOWN = True
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    FLASK_MAIL_SUBJECT_PREFIX = '[Flask]'
-    FLASK_MAIL_SENDER = 'Flask Admin <605079324@qq.com>'
+    FLASK_MAIL_SUBJECT_PREFIX = '[博客]'
+    FLASK_MAIL_SENDER = 'zhuangda <605079324@qq.com>'
     FLASK_ADMIN = os.environ.get('FLASK_ADMIN')
 
     # 环境配置初始化
@@ -18,11 +24,6 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    MAIL_SERVER = 'smtp.qq.com'
-    MAIL_PORT = 587
-    MAIL_USE_TLS = True
-    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URI') or \
                               'sqlite:///' + os.path.join(basedir, 'data-dev.sqlite')
 
